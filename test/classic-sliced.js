@@ -11,7 +11,7 @@ const createSSB = SecretStack({ appKey: caps.shs })
   .use(require('ssb-memdb'))
   .use(require('ssb-classic'))
   .use(require('ssb-box'))
-  .use(require('../sliced-feeds'))
+  .use(require('../'))
 
 test('sync a sliced classic feed', async (t) => {
   const ALICE_DIR = path.join(os.tmpdir(), 'dagsync-alice')
@@ -61,15 +61,15 @@ test('sync a sliced classic feed', async (t) => {
   t.pass('bob connected to alice')
 
   // Manual dag-sync steps
-  const rangeAtBob = bob.dagsync.getRangeOf(carolID)
-  const commonRange = await p(remoteAlice.dagsync.getCommonRange)(
+  const rangeAtBob = bob.feedSync.getRangeOf(carolID)
+  const commonRange = await p(remoteAlice.feedSync.getCommonRange)(
     carolID,
     rangeAtBob
   )
   const bobGot = new Map()
   for (let i = 0; i < 4; i++) {
-    const bloom = bob.dagsync.calcBloom(carolID, commonRange, i)
-    const missingIter = await p(remoteAlice.dagsync.getMessagesMissing)(
+    const bloom = bob.feedSync.calcBloom(carolID, commonRange, i)
+    const missingIter = await p(remoteAlice.feedSync.getMessagesMissing)(
       carolID,
       commonRange,
       i,
@@ -85,7 +85,7 @@ test('sync a sliced classic feed', async (t) => {
   for (const msgVal of missingForBob) {
     await p(bob.db.add)(msgVal)
   }
-  t.pass('bob got messages via dagsync')
+  t.pass('bob got messages via feedSync')
 
   {
     const arr = bob.db

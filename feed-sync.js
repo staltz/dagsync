@@ -1,6 +1,6 @@
 const dagSyncAlgorithm = require('./algorithm')
 
-exports.name = 'dagsync'
+exports.name = 'feedSync'
 
 exports.manifest = {
   getCommonRange: 'async',

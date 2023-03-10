@@ -11,7 +11,7 @@ const createSSB = SecretStack({ appKey: caps.shs })
   .use(require('ssb-memdb'))
   .use(require('ssb-classic'))
   .use(require('ssb-box'))
-  .use(require('../threads'))
+  .use(require('../'))
 
 /*
 BEFORE dagsync:
@@ -134,15 +134,15 @@ test('sync a thread where both peers have portions', async (t) => {
 
   // Manual dag-sync steps
   try {
-    const rangeAtBob = bob.dagsync.getRangeOf(rootA.key)
-    const commonRange = await p(remoteAlice.dagsync.getCommonRange)(
+    const rangeAtBob = bob.threadSync.getRangeOf(rootA.key)
+    const commonRange = await p(remoteAlice.threadSync.getCommonRange)(
       rootA.key,
       rangeAtBob
     )
     const bobGot = new Map()
     for (let i = 0; i < 4; i++) {
-      const bloom = bob.dagsync.calcBloom(rootA.key, commonRange, i)
-      const missingIter = await p(remoteAlice.dagsync.getMessagesMissing)(
+      const bloom = bob.threadSync.calcBloom(rootA.key, commonRange, i)
+      const missingIter = await p(remoteAlice.threadSync.getMessagesMissing)(
         rootA.key,
         commonRange,
         i,
@@ -161,7 +161,7 @@ test('sync a thread where both peers have portions', async (t) => {
   } catch (err) {
     console.error(err)
   }
-  t.pass('bob got messages via dagsync')
+  t.pass('bob got messages via threadSync')
 
   t.deepEquals(
     bob.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
@@ -233,15 +233,15 @@ test('sync a thread where one peer does not have the root', async (t) => {
 
   // Manual dag-sync steps
   try {
-    const rangeAtBob = bob.dagsync.getRangeOf(rootA.key)
-    const commonRange = await p(remoteAlice.dagsync.getCommonRange)(
+    const rangeAtBob = bob.threadSync.getRangeOf(rootA.key)
+    const commonRange = await p(remoteAlice.threadSync.getCommonRange)(
       rootA.key,
       rangeAtBob
     )
     const bobGot = new Map()
     for (let i = 0; i < 4; i++) {
-      const bloom = bob.dagsync.calcBloom(rootA.key, commonRange, i)
-      const missingIter = await p(remoteAlice.dagsync.getMessagesMissing)(
+      const bloom = bob.threadSync.calcBloom(rootA.key, commonRange, i)
+      const missingIter = await p(remoteAlice.threadSync.getMessagesMissing)(
         rootA.key,
         commonRange,
         i,
@@ -260,7 +260,7 @@ test('sync a thread where one peer does not have the root', async (t) => {
   } catch (err) {
     console.error(err)
   }
-  t.pass('bob got messages via dagsync')
+  t.pass('bob got messages via threadSync')
 
   t.deepEquals(
     bob.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
