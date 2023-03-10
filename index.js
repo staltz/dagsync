@@ -1,1 +1,1 @@
-module.exports = [require('./feed-sync'), require('./thread-sync')]
+module.exports = [require('./lib/feed-sync'), require('./lib/thread-sync')]
