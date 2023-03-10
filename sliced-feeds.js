@@ -14,6 +14,7 @@ exports.permissions = {
 }
 
 exports.init = function init(ssb, config) {
+  // TODO: "sort" here is by increasing sequence number
   function getRangeOf(feedId) {
     let minSeq = Infinity
     let maxSeq = 0

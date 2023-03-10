@@ -7,12 +7,6 @@ const SecretStack = require('secret-stack')
 const caps = require('ssb-caps')
 const p = require('util').promisify
 
-const ALICE_DIR = path.join(os.tmpdir(), 'dagsync-alice')
-const BOB_DIR = path.join(os.tmpdir(), 'dagsync-bob')
-
-rimraf.sync(ALICE_DIR)
-rimraf.sync(BOB_DIR)
-
 const createSSB = SecretStack({ appKey: caps.shs })
   .use(require('ssb-memdb'))
   .use(require('ssb-classic'))
@@ -20,6 +14,12 @@ const createSSB = SecretStack({ appKey: caps.shs })
   .use(require('../sliced-feeds'))
 
 test('replicate a sliced classic feed', async (t) => {
+  const ALICE_DIR = path.join(os.tmpdir(), 'dagsync-alice')
+  const BOB_DIR = path.join(os.tmpdir(), 'dagsync-bob')
+
+  rimraf.sync(ALICE_DIR)
+  rimraf.sync(BOB_DIR)
+
   const alice = createSSB({
     keys: ssbKeys.generate('ed25519', 'alice'),
     path: ALICE_DIR,
@@ -79,7 +79,9 @@ test('replicate a sliced classic feed', async (t) => {
       bobGot.set(msgVal.sequence, msgVal)
     }
   }
-  const missingForBob = [...bobGot.values()].sort((a, b) => a.sequence - b.sequence)
+  const missingForBob = [...bobGot.values()].sort(
+    (a, b) => a.sequence - b.sequence
+  )
   for (const msgVal of missingForBob) {
     await p(bob.db.add)(msgVal)
   }
