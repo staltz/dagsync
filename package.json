@@ -1,0 +1,46 @@
+{
+  "name": "dagsync",
+  "version": "1.0.0",
+  "description": "SSB replication using Kleppmann's hash graph sync",
+  "main": "index.js",
+  "files": [
+    "*.js",
+    "lib/*.js",
+    "compat/*.js"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "author": "Andre Staltz <contact@staltz.com>",
+  "license": "CC0-1.0",
+  "homepage": "https://github.com/staltz/dagsync",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:staltz/dagsync.git"
+  },
+  "scripts": {
+    "test": "tape test/*.js | tap-arc --bail",
+    "format-code": "prettier --write \"*.js\" \"(test|compat|indexes|operators)/*.js\"",
+    "format-code-staged": "pretty-quick --staged --pattern \"*.js\" --pattern \"(test|compat|indexes|operators)/*.js\"",
+    "coverage": "c8 --reporter=lcov npm run test"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run format-code-staged"
+    }
+  },
+  "devDependencies": {
+    "rimraf": "^4.4.0",
+    "secret-stack": "^6.4.1",
+    "ssb-box": "^1.0.1",
+    "ssb-caps": "^1.1.0",
+    "ssb-classic": "^1.1.0",
+    "ssb-keys": "^8.5.0",
+    "ssb-memdb": "0.0.3",
+    "tap-arc": "^0.3.5",
+    "tape": "^5.6.3"
+  },
+  "dependencies": {
+    "bloom-filters": "^3.0.0"
+  }
+}
