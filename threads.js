@@ -23,10 +23,8 @@ exports.init = function init(ssb, config) {
       let maxTime = 0
       ssb.db.forEach((msg) => {
         if (msg.key !== rootMsgId && msg.value.content.root === rootMsgId) {
-          maxTime = Math.max(
-            maxTime,
-            msg.value.timestamp - rootMsgVal.timestamp
-          )
+          const timestamp = Math.min(msg.timestamp, msg.value.timestamp)
+          maxTime = Math.max(maxTime, timestamp - rootMsgVal.timestamp)
         }
       })
       return [0, maxTime]
@@ -45,8 +43,8 @@ exports.init = function init(ssb, config) {
       const rootMsgVal = ssb.db.get(rootMsgId)
       if (!rootMsgVal) return
       for (const msg of ssb.db.filterAsIterator(() => true)) {
-        const { key, value } = msg
-        const t = value.timestamp - rootMsgVal.timestamp
+        const { key, value, timestamp } = msg
+        const t = Math.min(timestamp, value.timestamp) - rootMsgVal.timestamp
         if (
           key === rootMsgId ||
           (value.content?.root === rootMsgId && t >= minTime && t <= maxTime)
