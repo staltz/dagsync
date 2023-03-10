@@ -50,12 +50,12 @@ graph TB;
   end
 ```
 */
-test('replicate a thread', async (t) => {
-const ALICE_DIR = path.join(os.tmpdir(), 'dagsync-alice')
-const BOB_DIR = path.join(os.tmpdir(), 'dagsync-bob')
+test('sync a thread where both peers have portions', async (t) => {
+  const ALICE_DIR = path.join(os.tmpdir(), 'dagsync-alice')
+  const BOB_DIR = path.join(os.tmpdir(), 'dagsync-bob')
 
-rimraf.sync(ALICE_DIR)
-rimraf.sync(BOB_DIR)
+  rimraf.sync(ALICE_DIR)
+  rimraf.sync(BOB_DIR)
 
   const alice = createSSB({
     keys: ssbKeys.generate('ed25519', 'alice'),
@@ -174,6 +174,103 @@ rimraf.sync(BOB_DIR)
   await p(bob.close)(true)
 })
 
-test.skip('sync a thread where one peer does not have the root', async (t) => {
-  // FIXME:
+test('sync a thread where one peer does not have the root', async (t) => {
+  const ALICE_DIR = path.join(os.tmpdir(), 'dagsync-alice')
+  const BOB_DIR = path.join(os.tmpdir(), 'dagsync-bob')
+
+  rimraf.sync(ALICE_DIR)
+  rimraf.sync(BOB_DIR)
+
+  const alice = createSSB({
+    keys: ssbKeys.generate('ed25519', 'alice'),
+    path: ALICE_DIR,
+  })
+
+  const bob = createSSB({
+    keys: ssbKeys.generate('ed25519', 'bob'),
+    path: BOB_DIR,
+  })
+
+  await alice.db.loaded()
+  await bob.db.loaded()
+
+  const rootA = await p(alice.db.create)({
+    feedFormat: 'classic',
+    content: { type: 'post', text: 'A' },
+    keys: alice.config.keys,
+  })
+
+  await p(setTimeout)(10)
+
+  const replyA1 = await p(alice.db.create)({
+    feedFormat: 'classic',
+    content: { type: 'post', text: 'A1', root: rootA.key, branch: rootA.key },
+    keys: alice.config.keys,
+  })
+
+  await p(setTimeout)(10)
+
+  const replyA2 = await p(alice.db.create)({
+    feedFormat: 'classic',
+    content: { type: 'post', text: 'A2', root: rootA.key, branch: replyA1.key },
+    keys: alice.config.keys,
+  })
+
+  t.deepEquals(
+    alice.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
+    ['A', 'A1', 'A2'],
+    'alice has the full thread'
+  )
+
+  t.deepEquals(
+    bob.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
+    [],
+    'bob has nothing'
+  )
+
+  const remoteAlice = await p(bob.connect)(alice.getAddress())
+  t.pass('bob connected to alice')
+
+  // Manual dag-sync steps
+  try {
+    const rangeAtBob = bob.dagsync.getRangeOf(rootA.key)
+    const commonRange = await p(remoteAlice.dagsync.getCommonRange)(
+      rootA.key,
+      rangeAtBob
+    )
+    const bobGot = new Map()
+    for (let i = 0; i < 4; i++) {
+      const bloom = bob.dagsync.calcBloom(rootA.key, commonRange, i)
+      const missingIter = await p(remoteAlice.dagsync.getMessagesMissing)(
+        rootA.key,
+        commonRange,
+        i,
+        bloom
+      )
+      for (const msgVal of missingIter) {
+        bobGot.set(msgVal.sequence, msgVal)
+      }
+    }
+    const missingForBob = [...bobGot.values()].sort(
+      (a, b) => a.timestamp - b.timestamp
+    )
+    for (const msgVal of missingForBob) {
+      await p(bob.db.add)(msgVal)
+    }
+  } catch (err) {
+    console.error(err)
+  }
+  t.pass('bob got messages via dagsync')
+
+  t.deepEquals(
+    bob.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
+    ['A', 'A1', 'A2'],
+    'bob has the full thread'
+  )
+
+
+  await p(remoteAlice.close)(true)
+  await p(alice.close)(true)
+  await p(bob.close)(true)
+
 })

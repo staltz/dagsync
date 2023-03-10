@@ -34,7 +34,10 @@ exports.init = function init(ssb, config) {
 
     estimateMsgCount(range) {
       const [minTime, maxTime] = range
-      return (maxTime - minTime) / 10
+      const estimate = maxTime - minTime / 10
+      if (estimate > 200) return 200
+      else if (estimate < 5) return 5
+      else return estimate
     },
 
     *yieldMessagesIn(rootMsgId, range) {
@@ -42,9 +45,12 @@ exports.init = function init(ssb, config) {
       const rootMsgVal = ssb.db.get(rootMsgId)
       if (!rootMsgVal) return
       for (const msg of ssb.db.filterAsIterator(() => true)) {
-        const value = msg.value
+        const { key, value } = msg
         const t = value.timestamp - rootMsgVal.timestamp
-        if (value.content?.root === rootMsgId && t >= minTime && t <= maxTime) {
+        if (
+          key === rootMsgId ||
+          (value.content?.root === rootMsgId && t >= minTime && t <= maxTime)
+        ) {
           yield msg
         }
       }

@@ -13,7 +13,7 @@ const createSSB = SecretStack({ appKey: caps.shs })
   .use(require('ssb-box'))
   .use(require('../sliced-feeds'))
 
-test('replicate a sliced classic feed', async (t) => {
+test('sync a sliced classic feed', async (t) => {
   const ALICE_DIR = path.join(os.tmpdir(), 'dagsync-alice')
   const BOB_DIR = path.join(os.tmpdir(), 'dagsync-bob')
 

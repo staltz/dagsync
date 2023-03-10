@@ -31,16 +31,20 @@ exports.init = function init(ssb, config) {
 
     estimateMsgCount(range) {
       const [minSeq, maxSeq] = range
-      return maxSeq - minSeq + 1
+      const estimate = maxSeq - minSeq + 1
+      if (estimate > 1000) return 1000
+      else if (estimate < 5) return 5
+      else return estimate
     },
 
     *yieldMessagesIn(feedId, range) {
       const [minSeq, maxSeq] = range
-      const iter = ssb.db.filterAsIterator((msg) => {
+      for (const msg of ssb.db.filterAsIterator(() => true)) {
         const { author, sequence } = msg.value
-        return author === feedId && sequence >= minSeq && sequence <= maxSeq
-      })
-      for (const msg of iter) yield msg
+        if (author === feedId && sequence >= minSeq && sequence <= maxSeq) {
+          yield msg
+        }
+      }
     },
   })
 }
