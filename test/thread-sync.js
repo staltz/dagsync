@@ -132,41 +132,20 @@ test('sync a thread where both peers have portions', async (t) => {
   const remoteAlice = await p(bob.connect)(alice.getAddress())
   t.pass('bob connected to alice')
 
-  // Manual dag-sync steps
-  try {
-    const rangeAtBob = bob.threadSync.getRangeOf(rootA.key)
-    const commonRange = await p(remoteAlice.threadSync.getCommonRange)(
-      rootA.key,
-      rangeAtBob
-    )
-    const bobGot = new Map()
-    for (let i = 0; i < 4; i++) {
-      const bloom = bob.threadSync.calcBloom(rootA.key, commonRange, i)
-      const missingIter = await p(remoteAlice.threadSync.getMessagesMissing)(
-        rootA.key,
-        commonRange,
-        i,
-        bloom
-      )
-      for (const msgVal of missingIter) {
-        bobGot.set(msgVal.sequence, msgVal)
-      }
-    }
-    const missingForBob = [...bobGot.values()].sort(
-      (a, b) => a.timestamp - b.timestamp
-    )
-    for (const msgVal of missingForBob) {
-      await p(bob.db.add)(msgVal)
-    }
-  } catch (err) {
-    console.error(err)
-  }
-  t.pass('bob got messages via threadSync')
+  bob.threadSync.request(rootA.key)
+  await p(setTimeout)(1000)
+  t.pass('threadSync!')
 
   t.deepEquals(
     bob.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
     ['A', 'B1', 'B2', 'D1', 'C1'],
     'bob has the full thread'
+  )
+
+  t.deepEquals(
+    alice.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
+    ['A', 'B1', 'B2', 'C1', 'D1'],
+    'alice has the full thread'
   )
 
   await p(remoteAlice.close)(true)
@@ -231,36 +210,9 @@ test('sync a thread where one peer does not have the root', async (t) => {
   const remoteAlice = await p(bob.connect)(alice.getAddress())
   t.pass('bob connected to alice')
 
-  // Manual dag-sync steps
-  try {
-    const rangeAtBob = bob.threadSync.getRangeOf(rootA.key)
-    const commonRange = await p(remoteAlice.threadSync.getCommonRange)(
-      rootA.key,
-      rangeAtBob
-    )
-    const bobGot = new Map()
-    for (let i = 0; i < 4; i++) {
-      const bloom = bob.threadSync.calcBloom(rootA.key, commonRange, i)
-      const missingIter = await p(remoteAlice.threadSync.getMessagesMissing)(
-        rootA.key,
-        commonRange,
-        i,
-        bloom
-      )
-      for (const msgVal of missingIter) {
-        bobGot.set(msgVal.sequence, msgVal)
-      }
-    }
-    const missingForBob = [...bobGot.values()].sort(
-      (a, b) => a.timestamp - b.timestamp
-    )
-    for (const msgVal of missingForBob) {
-      await p(bob.db.add)(msgVal)
-    }
-  } catch (err) {
-    console.error(err)
-  }
-  t.pass('bob got messages via threadSync')
+  bob.threadSync.request(rootA.key)
+  await p(setTimeout)(1000)
+  t.pass('threadSync!')
 
   t.deepEquals(
     bob.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
@@ -268,9 +220,7 @@ test('sync a thread where one peer does not have the root', async (t) => {
     'bob has the full thread'
   )
 
-
   await p(remoteAlice.close)(true)
   await p(alice.close)(true)
   await p(bob.close)(true)
-
 })

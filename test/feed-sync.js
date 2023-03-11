@@ -60,32 +60,9 @@ test('sync a sliced classic feed', async (t) => {
   const remoteAlice = await p(bob.connect)(alice.getAddress())
   t.pass('bob connected to alice')
 
-  // Manual dag-sync steps
-  const rangeAtBob = bob.feedSync.getRangeOf(carolID)
-  const commonRange = await p(remoteAlice.feedSync.getCommonRange)(
-    carolID,
-    rangeAtBob
-  )
-  const bobGot = new Map()
-  for (let i = 0; i < 4; i++) {
-    const bloom = bob.feedSync.calcBloom(carolID, commonRange, i)
-    const missingIter = await p(remoteAlice.feedSync.getMessagesMissing)(
-      carolID,
-      commonRange,
-      i,
-      bloom
-    )
-    for (const msgVal of missingIter) {
-      bobGot.set(msgVal.sequence, msgVal)
-    }
-  }
-  const missingForBob = [...bobGot.values()].sort(
-    (a, b) => a.sequence - b.sequence
-  )
-  for (const msgVal of missingForBob) {
-    await p(bob.db.add)(msgVal)
-  }
-  t.pass('bob got messages via feedSync')
+  bob.feedSync.request(carolID)
+  await p(setTimeout)(1000)
+  t.pass('feedSync!')
 
   {
     const arr = bob.db
