@@ -153,7 +153,7 @@ test('sync a thread where both peers have portions', async (t) => {
   await p(bob.close)(true)
 })
 
-test('sync a thread where one peer does not have the root', async (t) => {
+test('sync a thread where first peer does not have the root', async (t) => {
   const ALICE_DIR = path.join(os.tmpdir(), 'dagsync-alice')
   const BOB_DIR = path.join(os.tmpdir(), 'dagsync-bob')
 
@@ -224,3 +224,76 @@ test('sync a thread where one peer does not have the root', async (t) => {
   await p(alice.close)(true)
   await p(bob.close)(true)
 })
+
+test('sync a thread where second peer does not have the root', async (t) => {
+  const ALICE_DIR = path.join(os.tmpdir(), 'dagsync-alice')
+  const BOB_DIR = path.join(os.tmpdir(), 'dagsync-bob')
+
+  rimraf.sync(ALICE_DIR)
+  rimraf.sync(BOB_DIR)
+
+  const alice = createSSB({
+    keys: ssbKeys.generate('ed25519', 'alice'),
+    path: ALICE_DIR,
+  })
+
+  const bob = createSSB({
+    keys: ssbKeys.generate('ed25519', 'bob'),
+    path: BOB_DIR,
+  })
+
+  await alice.db.loaded()
+  await bob.db.loaded()
+
+  const rootA = await p(alice.db.create)({
+    feedFormat: 'classic',
+    content: { type: 'post', text: 'A' },
+    keys: alice.config.keys,
+  })
+
+  await p(setTimeout)(10)
+
+  const replyA1 = await p(alice.db.create)({
+    feedFormat: 'classic',
+    content: { type: 'post', text: 'A1', root: rootA.key, branch: rootA.key },
+    keys: alice.config.keys,
+  })
+
+  await p(setTimeout)(10)
+
+  const replyA2 = await p(alice.db.create)({
+    feedFormat: 'classic',
+    content: { type: 'post', text: 'A2', root: rootA.key, branch: replyA1.key },
+    keys: alice.config.keys,
+  })
+
+  t.deepEquals(
+    alice.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
+    ['A', 'A1', 'A2'],
+    'alice has the full thread'
+  )
+
+  t.deepEquals(
+    bob.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
+    [],
+    'bob has nothing'
+  )
+
+  const remoteBob = await p(alice.connect)(bob.getAddress())
+  t.pass('alice connected to bob')
+
+  alice.threadSync.request(rootA.key)
+  await p(setTimeout)(1000)
+  t.pass('threadSync!')
+
+  t.deepEquals(
+    bob.db.filterAsArray((msg) => true).map((msg) => msg.value.content.text),
+    ['A', 'A1', 'A2'],
+    'bob has the full thread'
+  )
+
+  await p(remoteBob.close)(true)
+  await p(alice.close)(true)
+  await p(bob.close)(true)
+})
+
